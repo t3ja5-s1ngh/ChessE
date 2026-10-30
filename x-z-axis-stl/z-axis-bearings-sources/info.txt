@@ -1,0 +1,9 @@
+based on http://www.thingiverse.com/thing:242020
+
+Instructions
+
+Replace Prusa3/box_frame/inc/functions.scad and put z-axis_bearing into Prusa3/box_frame and open it by OpenSCAD for stl model creating.
+You can use hot glue or epoxy for bearings fixing.
+
+this is the 8mm rod for the box wooden frame version of that part
+Uses two 625zz bearings 
