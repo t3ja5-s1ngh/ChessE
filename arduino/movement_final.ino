@@ -20,7 +20,7 @@ const bool X_DIR_INVERT = false;           // +X = moving right from home
 const bool Y_DIR_INVERT = false;           // +Y = moving up from home (rank 9 -> 0)
 
 // ------------- SPEED -------------
-const int CRUISE_DELAY_US = 1500;          // lower = faster
+const int CRUISE_DELAY_US = 1000;          // lower = faster
 const int START_DELAY_US  = 2000;          // gentle start/stop speed
 const int RAMP_STEPS      = 150;           // 0 = constant speed, no ramp
 
@@ -226,4 +226,50 @@ void loop() {
       }
       cellCol[0]    = sc;
       cellRank[0]   = sr;
-      cellActive[0] =
+      cellActive[0] = 1;
+      n++;
+    }
+
+    if (n < 2) { Serial.println(F("Path needs at least one cell besides the start.")); continue; }
+    if (!pathIsStraightLegs(n)) continue;
+    break;
+  }
+
+  // Rack state for the first leg (start cell's flag; 1 if it was left out)
+  setRack(cellActive[0]);
+
+  // Follow the path. A cell in the middle of a straight run is passed
+  // through without stopping, unless the rack state changes there.
+  for (int k = 1; k < n; k++) {
+    int dx = cellCol[k] - cellCol[k-1];
+    int dy = cellRank[k] - cellRank[k-1];
+    bool last = (k == n - 1);
+
+    if (dx == 0 && dy == 0) {              // repeated cell: only update rack
+      if (!last) setRack(cellActive[k]);
+      continue;
+    }
+    if (!last) {
+      int nx = cellCol[k+1] - cellCol[k];
+      int ny = cellRank[k+1] - cellRank[k];
+      bool sameDir = (sgn(nx) == sgn(dx) && sgn(ny) == sgn(dy));
+      bool sameRack = (cellActive[k] == cellActive[k-1]);
+      if (sameDir && sameRack) continue;   // no need to stop here
+    }
+
+    Serial.print(F("-> "));
+    printCell(cellCol[k], cellRank[k]);
+    Serial.print(F("  rack after: "));
+    Serial.println(last ? 0 : cellActive[k]);
+    goToCell(cellCol[k], cellRank[k]);
+    if (!last) setRack(cellActive[k]);     // state held until the next cell
+  }
+
+  // ---------- STEP 3: rack down, pause, then home ----------
+  Serial.println(F("Path complete. Lowering rack."));
+  setRack(0);
+  delay(END_PAUSE_MS);
+  Serial.println(F("Returning to home y9"));
+  goToSteps(0, 0);
+  Serial.println(F("Done, at y9."));
+}
